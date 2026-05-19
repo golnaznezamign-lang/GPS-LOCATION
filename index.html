@@ -21,7 +21,7 @@
 
     #map {
         width: 100%;
-        height: calc(100vh - 70px);
+        height: calc(100dvh - 70px); /* اصلاح آیفون */
     }
 
     #bottomBar {
@@ -74,10 +74,8 @@
         maxZoom: 19
     }).addTo(map);
 
-    // مارکر
+    // مارکر و دایره (ابتدا در مرکز)
     var marker = L.marker(map.getCenter()).addTo(map);
-
-    // دایره دقت
     var accuracyCircle = L.circle(map.getCenter(), {
         radius: 20,
         color: "blue",
@@ -85,38 +83,29 @@
         fillOpacity: 0.15
     }).addTo(map);
 
-    // تابع آپدیت UTM
-    function updateUTM() {
-        var c = map.getCenter();
-        marker.setLatLng(c);
-        accuracyCircle.setLatLng(c);
-
-        var utm = proj4("EPSG:4326", "EPSG:32639", [c.lng, c.lat]);
-
+    // تابع آپدیت UTM بر اساس GPS واقعی
+    function updateUTMFromGPS(lat, lng) {
+        var utm = proj4("EPSG:4326", "EPSG:32639", [lng, lat]);
         document.getElementById("utmText").textContent =
             "Zone 39N     X: " + Math.round(utm[0]) + "     Y: " + Math.round(utm[1]);
     }
 
-    // آپدیت زنده
-    map.on('move', updateUTM);
-
     // گرفتن موقعیت واقعی کاربر
-    map.locate({ setView: true, maxZoom: 17 });
+    map.locate({ setView: true, maxZoom: 17, watch: true });
 
+    // وقتی GPS پیدا شد
     map.on('locationfound', function(e) {
         marker.setLatLng(e.latlng);
         accuracyCircle.setLatLng(e.latlng);
-        map.setView(e.latlng, 17);
-        updateUTM();
-    });
+        accuracyCircle.setRadius(e.accuracy);
 
-    // اولین بار
-    updateUTM();
+        updateUTMFromGPS(e.latlng.lat, e.latlng.lng);
+    });
 
     // دکمه ارسال موقعیت
     document.getElementById("sendBtn").addEventListener("click", function() {
-        var c = map.getCenter();
-        alert("مختصات شما ارسال شد:\n\nLat: " + c.lat + "\nLng: " + c.lng);
+        var pos = marker.getLatLng();
+        alert("مختصات شما ارسال شد:\n\nLat: " + pos.lat + "\nLng: " + pos.lng);
     });
 </script>
 

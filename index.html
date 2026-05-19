@@ -21,7 +21,7 @@
 
     #map {
         width: 100%;
-        height: calc(100svh - 70px); /* نسخه نهایی مخصوص آیفون */
+        height: calc(100svh - 70px);
     }
 
     #bottomBar {
@@ -59,12 +59,10 @@
 
 <div id="bottomBar">
     <button id="sendBtn">ارسال موقعیت</button>
-    <div id="utmText">Zone 39N     X: ---     Y: ---</div>
+    <div id="utmText">Zone --     X: ---     Y: ---</div>
 </div>
 
 <script>
-    // تعریف UTM Zone 39N
-    proj4.defs("EPSG:32639","+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs");
 
     // ایجاد نقشه بدون مرکز اولیه
     var map = L.map('map');
@@ -74,33 +72,53 @@
         maxZoom: 19
     }).addTo(map);
 
-    // مارکر و دایره (ابتدا در مرکز)
-    var marker = L.marker(map.getCenter()).addTo(map);
-    var accuracyCircle = L.circle(map.getCenter(), {
-        radius: 20,
-        color: "blue",
-        fillColor: "blue",
-        fillOpacity: 0.15
-    }).addTo(map);
-
-    // برای زوم اولیه فقط یک بار
+    var marker = null;
+    var accuracyCircle = null;
     var firstFix = true;
 
-    // تابع آپدیت UTM بر اساس GPS واقعی
+    // تابع محاسبه UTM واقعی
     function updateUTMFromGPS(lat, lng) {
-        var utm = proj4("EPSG:4326", "EPSG:32639", [lng, lat]);
+
+        // محاسبه زون
+        var zone = Math.floor((lng + 180) / 6) + 1;
+
+        // انتخاب EPSG بر اساس نیمکره
+        var epsg = lat >= 0 ? `EPSG:326${zone}` : `EPSG:327${zone}`;
+
+        // تعریف پروجکشن اگر قبلاً تعریف نشده
+        if (!proj4.defs[epsg]) {
+            proj4.defs(epsg, `+proj=utm +zone=${zone} +datum=WGS84 +units=m +no_defs`);
+        }
+
+        // تبدیل مختصات
+        var utm = proj4("EPSG:4326", epsg, [lng, lat]);
+
+        // نمایش
         document.getElementById("utmText").textContent =
-            "Zone 39N     X: " + Math.round(utm[0]) + "     Y: " + Math.round(utm[1]);
+            `Zone ${zone}${lat >= 0 ? "N" : "S"}     X: ${Math.round(utm[0])}     Y: ${Math.round(utm[1])}`;
     }
 
-    // گرفتن موقعیت واقعی کاربر
-    map.locate({ watch: true });
+    // گرفتن موقعیت واقعی
+    map.locate({ watch: true, enableHighAccuracy: true });
 
     // وقتی GPS پیدا شد
     map.on('locationfound', function(e) {
-        marker.setLatLng(e.latlng);
-        accuracyCircle.setLatLng(e.latlng);
-        accuracyCircle.setRadius(e.accuracy);
+
+        // ساخت مارکر و دایره فقط بار اول
+        if (!marker) {
+            marker = L.marker(e.latlng).addTo(map);
+
+            accuracyCircle = L.circle(e.latlng, {
+                radius: e.accuracy,
+                color: "blue",
+                fillColor: "blue",
+                fillOpacity: 0.15
+            }).addTo(map);
+        } else {
+            marker.setLatLng(e.latlng);
+            accuracyCircle.setLatLng(e.latlng);
+            accuracyCircle.setRadius(e.accuracy);
+        }
 
         // زوم اولیه فقط یک بار
         if (firstFix) {
@@ -108,14 +126,13 @@
             firstFix = false;
         }
 
-        // حرکت دائمی نقشه همراه GPS
-        map.setView(e.latlng, 17);
-
         updateUTMFromGPS(e.latlng.lat, e.latlng.lng);
     });
 
-    // دکمه ارسال موقعیت با Share API
+    // دکمه ارسال موقعیت
     document.getElementById("sendBtn").addEventListener("click", async function() {
+        if (!marker) return;
+
         var pos = marker.getLatLng();
         var text = `موقعیت من:\nLatitude: ${pos.lat}\nLongitude: ${pos.lng}`;
         var url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
@@ -134,6 +151,7 @@
             alert("مرورگر شما از اشتراک‌گذاری پشتیبانی نمی‌کند.");
         }
     });
+
 </script>
 
 </body>

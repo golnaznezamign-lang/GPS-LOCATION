@@ -91,7 +91,7 @@
     }
 
     // گرفتن موقعیت واقعی کاربر
-    map.locate({ setView: true, maxZoom: 17, watch: true });
+    map.locate({ watch: true });
 
     // وقتی GPS پیدا شد
     map.on('locationfound', function(e) {

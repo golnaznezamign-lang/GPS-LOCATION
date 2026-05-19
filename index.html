@@ -66,8 +66,8 @@
     // تعریف UTM Zone 39N
     proj4.defs("EPSG:32639","+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs");
 
-    // ایجاد نقشه
-   var map = L.map('map');
+    // ایجاد نقشه بدون مرکز اولیه
+    var map = L.map('map');
 
     // لایه OSM
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -82,6 +82,9 @@
         fillColor: "blue",
         fillOpacity: 0.15
     }).addTo(map);
+
+    // برای زوم اولیه فقط یک بار
+    var firstFix = true;
 
     // تابع آپدیت UTM بر اساس GPS واقعی
     function updateUTMFromGPS(lat, lng) {
@@ -99,31 +102,38 @@
         accuracyCircle.setLatLng(e.latlng);
         accuracyCircle.setRadius(e.accuracy);
 
-        map.setView(e.latlng, 17);   // نقشه همیشه همراه GPS حرکت می‌کند
+        // زوم اولیه فقط یک بار
+        if (firstFix) {
+            map.setView(e.latlng, 17);
+            firstFix = false;
+        }
+
+        // حرکت دائمی نقشه همراه GPS
+        map.setView(e.latlng, 17);
 
         updateUTMFromGPS(e.latlng.lat, e.latlng.lng);
     });
 
-  document.getElementById("sendBtn").addEventListener("click", async function() {
-    var pos = marker.getLatLng();
-    var text = `موقعیت من:\nLatitude: ${pos.lat}\nLongitude: ${pos.lng}`;
-    var url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
+    // دکمه ارسال موقعیت با Share API
+    document.getElementById("sendBtn").addEventListener("click", async function() {
+        var pos = marker.getLatLng();
+        var text = `موقعیت من:\nLatitude: ${pos.lat}\nLongitude: ${pos.lng}`;
+        var url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
 
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: "ارسال موقعیت",
-                text: text,
-                url: url
-            });
-        } catch (err) {
-            console.log("Share canceled");
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: "ارسال موقعیت",
+                    text: text,
+                    url: url
+                });
+            } catch (err) {
+                console.log("Share canceled");
+            }
+        } else {
+            alert("مرورگر شما از اشتراک‌گذاری پشتیبانی نمی‌کند.");
         }
-    } else {
-        alert("مرورگر شما از اشتراک‌گذاری پشتیبانی نمی‌کند.");
-    }
-});
-
+    });
 </script>
 
 </body>

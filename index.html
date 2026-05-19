@@ -67,7 +67,7 @@
     proj4.defs("EPSG:32639","+proj=utm +zone=39 +datum=WGS84 +units=m +no_defs");
 
     // ایجاد نقشه
-    var map = L.map('map').setView([35.6892, 51.3890], 15);
+   var map = L.map('map');
 
     // لایه OSM
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -104,11 +104,26 @@
         updateUTMFromGPS(e.latlng.lat, e.latlng.lng);
     });
 
-    // دکمه ارسال موقعیت
-    document.getElementById("sendBtn").addEventListener("click", function() {
-        var pos = marker.getLatLng();
-        alert("مختصات شما ارسال شد:\n\nLat: " + pos.lat + "\nLng: " + pos.lng);
-    });
+  document.getElementById("sendBtn").addEventListener("click", async function() {
+    var pos = marker.getLatLng();
+    var text = `موقعیت من:\nLatitude: ${pos.lat}\nLongitude: ${pos.lng}`;
+    var url = `https://maps.google.com/?q=${pos.lat},${pos.lng}`;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: "ارسال موقعیت",
+                text: text,
+                url: url
+            });
+        } catch (err) {
+            console.log("Share canceled");
+        }
+    } else {
+        alert("مرورگر شما از اشتراک‌گذاری پشتیبانی نمی‌کند.");
+    }
+});
+
 </script>
 
 </body>

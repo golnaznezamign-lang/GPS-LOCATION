@@ -21,7 +21,7 @@
 
     #map {
         width: 100%;
-        height: calc(100dvh - 70px); /* اصلاح آیفون */
+        height: calc(100svh - 70px); /* نسخه نهایی مخصوص آیفون */
     }
 
     #bottomBar {
@@ -98,6 +98,8 @@
         marker.setLatLng(e.latlng);
         accuracyCircle.setLatLng(e.latlng);
         accuracyCircle.setRadius(e.accuracy);
+
+        map.setView(e.latlng, 17);   // نقشه همیشه همراه GPS حرکت می‌کند
 
         updateUTMFromGPS(e.latlng.lat, e.latlng.lng);
     });
